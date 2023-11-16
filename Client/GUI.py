@@ -1,10 +1,10 @@
 import os
 from tkinter import *  
+from tkinter import ttk
 import tkintermapview
 from tkinter import font
 from PIL import Image, ImageTk
-import json
-import socket
+import mysql.connector
 
 class App(Tk):
     def __init__(self):
@@ -18,6 +18,7 @@ class FrameHeadline(Label):
         Label.__init__(self, *args, **kwargs)
 
         self['font'] = font.Font(family='bahnschrift', size=35, weight='bold')
+        
         
 class MenuBotton(Button):
     def __init__(self, *args, **kwargs):
@@ -47,11 +48,68 @@ class MenuFrame(Frame):
         for i in range(4):
             MenuBotton(self, text=btnsnames[i]).pack(side='top')
 
+
+class SideFrame(Frame):
+    def __init__(self, *args, **kwargs):
+        Frame.__init__(self, *args, **kwargs)
+        self['height'] = 600
+        self['width'] = 700
+
+class InputBox(Entry):
+    def __init__(self, *args, **kwargs):
+        Entry.__init__(self, *args, **kwargs)
+
+class LabelInputBox(Label):
+    def __init__(self, *args, **kwargs):
+        Label.__init__(self, *args, **kwargs)
+        self['font'] = font.Font(family='bahnschrift', size=18, weight='bold')
+        self['padx'] = 30
+        self['pady'] = 10
+
+
+class AddFrame(SideFrame):
+    def __init__(self, *args, **kwargs):
+        SideFrame.__init__(self, *args, **kwargs)
+        color = 'skyBlue1'
+        self['bg'] = color
+        
+        self.grid_propagate(False)
+        
+        headlineframe = Frame(self, width=700,height=80, bg= color, padx=20, pady=10, )
+        headlineframe.grid_propagate(False)
+        headlineframe.grid(row=0, sticky=N)
+
+        FrameHeadline(headlineframe, text="Add a tap", bg = color).place(relx=0.5, rely=0.5, anchor=CENTER)
+
+        LocationFrame = Frame(self, width=600, height=120, bg='white')
+        LocationFrame.grid_propagate(False)
+
+        LabelInputBox(LocationFrame, text="Location:", bg='white').grid(row=0, column=0)
+
+        options = ['Address', 'Coordinates', 'Choose on map']
+
+        clicked = StringVar()
+        clicked.set(options[0])
+        
+        def Select(event):
+            print(1)
+            if LocationCombo.get() == options[2]:
+                entry = Entry(LocationFrame, width=200)
+                entry.grid(row=1,column=2)
+
+        LocationCombo = ttk.Combobox(LocationFrame, value=options, font=font.Font(family='bahnschrift', size=10, weight='bold'), state='readonly', width=13)
+        LocationCombo.current(0)
+        LocationCombo.bind_all("<<ComboxSelected>>", Select)
+        LocationCombo.grid(row=1, column=1)
+        
+        LocationFrame.grid(row=1,column=0, sticky=N)
+
+        drop = options
+        
+
 class WaterMapMarker():
 
-    
-
-    def __init__(self, watermap, name, score, x, y):
+    def __init__(self, watermap, name, x, y, score):
 
         self.name = name
         self.score = score
@@ -79,21 +137,21 @@ class WaterMapMarker():
     def update_icon_size(self, zoom):
         if zoom<8:
             zoom = 8
-        z = int((zoom-7)**1.5)+10
-        print(z)
-        self.icon = ImageTk.PhotoImage(Image.open(self.image).resize((z, z))) 
+        newsize = int((zoom-7)**1.5)+10
+        self.icon = ImageTk.PhotoImage(Image.open(self.image).resize((newsize, newsize))) 
         self.marker.change_icon(self.icon)
+
+                
+
+
+class MapFrame(SideFrame):
+    def __init__(self, *args, **kwargs):
+        SideFrame.__init__(self, *args, **kwargs)
         
 
-class MapFrame(Frame):
-    def __init__(self, *args, **kwargs):
-        Frame.__init__(self, *args, **kwargs)
-        self['height'] = 600
-        self['width'] = 700
+        
 
-        FrameHeadline(self, text="Look for Water").grid(row=0,column=0)
-
-        watermap = tkintermapview.TkinterMapView(self,height = 500, width = 680, max_zoom=18)
+        watermap = tkintermapview.TkinterMapView(self,height = 600, width = 700, max_zoom=18)
         watermap.set_address("32.0852937, 34.7816499")
         watermap.set_zoom(10)
         
@@ -101,8 +159,21 @@ class MapFrame(Frame):
         
         taps = []
 
-        for watertap in data['watertaps']:
-           taps.append(WaterMapMarker(watermap, watertap['name'], watertap['score'], watertap['posX'], watertap['posY']))
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="12345",
+            database="water_taps"
+        )
+
+        mycursor = db.cursor()
+
+        mycursor.execute("SELECT * FROM taps_table")
+
+        
+
+        for watertap in mycursor:
+           taps.append(WaterMapMarker(watermap, watertap[1], watertap[2], watertap[3], watertap[4]))
         
         def updatezoom(event):
             for tap in taps:
@@ -121,7 +192,7 @@ class MapFrame(Frame):
 
                 if event.y > c[1] and event.x < c[2] and event.y < c[5] and event.x > c[6]:
                     text = ""
-                    for i in range(tap.get_score()):
+                    for i in range(int(tap.get_score())):
                         text += ("★")
                     text +=  " " + tap.get_name()
                     tap.get_marker().set_text(text)
@@ -135,66 +206,23 @@ class MapFrame(Frame):
 
 
         watermap.grid(row=1,column=0)
-        
 
         
-def update_data():
-
-    host = '10.0.0.25'    
-    port = 6080
-
-    
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
-    client_socket.connect((host, port))
-        
-    file_bytes = b""
-
-    done = False
-
-    while not done:
-        data = client_socket.recv(1024)
-        if data == b"<END>":
-            done = True
-        else:
-            file_bytes += data
         
         
-    print(file_bytes)
-    
 
-    f = open(r"C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Client\database.json", "wb")
-    f.write(file_bytes)
-    print(file_bytes)
-
-    client_socket.close()
-
-    
-    
-    
-
-    
-    
-    
         
 
-
-
-
-
-update_data()
-
-f = open(r"C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Client\database.json")
-data = json.load(f)
-
-
+    
 
 
 app = App()
 
-menu = MenuFrame(app)
-menu.pack(side='left')
 
-MapFrame(app).pack()
+menu = MenuFrame(app)
+menu.grid(row=0, column=0)
+
+
+MapFrame(app).grid(row=0,column=1)
 
 app.mainloop()
