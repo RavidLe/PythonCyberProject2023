@@ -46,6 +46,12 @@ class WaterMapMarker():
     def get_marker(self):
         return self.marker
     
+    def get_x(self):
+        return self.x
+    
+    def get_y(self):
+        return self.y
+    
     def update_icon_size(self, zoom):
         if zoom<8:
             zoom = 8
@@ -54,12 +60,24 @@ class WaterMapMarker():
         self.marker.change_icon(self.icon)
 
 
+class MarkerFrame(Frame):
+    def __init__(self, container, name):
+        super().__init__(container)
+
+        Label(self, text=name, bg="white", font = TkFont.Font(family="Rubik", size=30) ).pack(side="right")
+        self['bg'] = 'white'
+        
+
+    def getscore(self):
+        return self.score 
+
+
 class MapFrame(Frame):
     def __init__(self, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
+
         self['bg'] = 'red'
         
-
         watermap = tkintermapview.TkinterMapView(self, max_zoom=18)
         watermap.set_address("32.0852937, 34.7816499")
         watermap.set_zoom(10)
@@ -78,12 +96,19 @@ class MapFrame(Frame):
         mycursor = db.cursor()
 
         mycursor.execute("SELECT * FROM taps_table")
-
         
+        widgets = {}
+
+        i = 0
 
         for watertap in mycursor:
            taps.append(WaterMapMarker(watermap, watertap[1], watertap[2], watertap[3], watertap[4]))
+           widgets[taps[i]] = MarkerFrame(watermap, watertap[1])
+
+           i += 1
         
+        print(widgets)
+
         def updatezoom(event):
             for tap in taps:
                 tap.update_icon_size(watermap.zoom)
@@ -91,26 +116,25 @@ class MapFrame(Frame):
         watermap.canvas.bind_all('<MouseWheel>', updatezoom)
         watermap.canvas.bind_all("<Button-1>",updatezoom)
         
-        def motion(event):
+        def show(event):
+
             
+
             for tap in taps:
-                
+
                 
                 
                 c = tap.get_marker_polygon().canvas_polygon_positions
 
                 if event.y > c[1] and event.x < c[2] and event.y < c[5] and event.x > c[6]:
-                    text = ""
-                    for i in range(int(tap.get_score())):
-                        text += ("★")
-                    text +=  " " + tap.get_name()
-                    tap.get_marker().set_text(text)
-                else:
-                    tap.get_marker().set_text("")
+                    widgets[tap].grid(row=1,column=0, sticky="nsew")
+                    watermap.set_position(tap.get_x(), tap.get_y())
+
+                
         
                 
 
-        watermap.canvas.bind('<Motion>', motion)
+        watermap.canvas.bind_all('<Button-1>', show)
 
 
 
@@ -118,6 +142,8 @@ class MapFrame(Frame):
 
         Grid.rowconfigure(self, 0, weight=1)
         Grid.columnconfigure(self, 0, weight=1)
+
+
 class Menu_Button(Button):
      def __init__(self, icon, *args, **kwargs):
         Button.__init__(self, *args, **kwargs)
@@ -131,6 +157,7 @@ class Menu_Button(Button):
         self['font'] = TkFont.Font(family="Rubik", size=24)
         self['relief'] = "flat"
         self['anchor'] = E
+
 
 
         

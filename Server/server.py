@@ -1,52 +1,78 @@
 import threading
 import socket
+import mysql.connector
+import json
 
-def get_data():
-    print('wating for data')
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('10.0.0.25', 6081))
-    server_socket.listen()
-   
+HOST = '10.0.0.25'
+PORT = 9090
+FORMAT = 'utf-8'
 
-    
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind((HOST, PORT))
 
-    
+def handle_client(conn, addr):
+            print(f"Request from {addr}")
+            command = conn.recv(1024).decode(FORMAT)
+            print(f"command type: {command}")
+
+            if command == 'get':
+
+                db = mysql.connector.connect(
+                    host="localhost",
+                    user="root",
+                    password="12345",
+                    database="water_taps"
+                )
+
+                mycursor = db.cursor()
+
+                mycursor.execute("SELECT * FROM Taps")
+
+                columns = [column[0] for column in mycursor.description]
+                data = [dict(zip(columns, row)) for row in mycursor.fetchall()]
+
+                json_data = json.dumps(data, indent=4)
+
+                conn.send(json_data.encode('utf-8'))
+
+                
+            elif command == 'send':
+
+                name = conn.recv(1024).decode(FORMAT)
+                coord_X = float(conn.recv(1024).decode(FORMAT))
+                coord_Y = float(conn.recv(1024).decode(FORMAT))
+                score = float(conn.recv(1024).decode(FORMAT))
+
+                print("added:" + name + str(coord_X) + str(coord_Y) + str(score))
+
+                db = mysql.connector.connect(
+                    host="localhost",
+                    user="root",
+                    password="12345",
+                    database="water_taps"
+                )
+
+                mycursor = db.cursor()
+                mycursor.execute(f"INSERT INTO Taps (Name, X_coord, Y_coord, Score) VALUES ('{name}', {coord_X}, {coord_Y}, {score})")
+                db.commit()
+                print("DONE!")
+                
+
+                mycursor.execute("SELECT * FROM Taps")
+
+                columns = [column[0] for column in mycursor.description]
+                data = [dict(zip(columns, row)) for row in mycursor.fetchall()]
+
+                json_data = json.dumps(data, indent=4)
+                print(json_data)
+
+
+def start():
+    print("Running...")
+    server.listen()
     while True:
-        conn, address = server_socket.accept()
+        conn, addr = server.accept()
+        thread = threading.Thread(target=handle_client, args=(conn, addr))
+        thread.start()
 
-        print("server is getting data from "+ address)
-
-        data = conn.recv(1024)
-
-        print(data)
-
-        conn.close()
-    
-def send_data():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('10.0.0.25', 6080))
-    server_socket.listen()
-    
-
-    
-
-    
-    while True:
-        try:
-            conn, address = server_socket.accept()
-            print("server is sending data to "+ str(address))
-
-            file = open(r'C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Server\database.json', 'rb')
-
-            data = file.read()
-            conn.sendall(data)
-            conn.send(b'<END>')
-            print('data send!')
-
-            file.close()
-            conn.close()
-        except:
-            pass
-
-threading.Thread(target=send_data).start()
-get_data()
+start()       
