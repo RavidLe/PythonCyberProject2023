@@ -1,10 +1,9 @@
 import rsa
+import os
 
-public_key, private_key = rsa.newkeys(1024)
+from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
 
-with open("public.pem", "wb") as f:
-    f.write(public_key.save_pkcs1("PEM"))
+print(os.urandom(16))
 
-with open("private.pem", "wb") as f:
-    f.write(private_key.save_pkcs1("PEM"))
 

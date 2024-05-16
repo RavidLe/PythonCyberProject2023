@@ -2,6 +2,13 @@ import threading
 import socket
 import mysql.connector
 import json
+import rsa
+import os 
+from Crypto.Cipher import AES
+import time
+import datetime
+import hashlib
+
 
 HOST = '10.0.0.25'
 PORT = 9090
@@ -10,61 +17,163 @@ FORMAT = 'utf-8'
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 
+public_key, private_key = rsa.newkeys(1024)
+
+def check_permission(conn):
+    username = rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)
+
+    password = rsa.decrypt(conn.recv(1024), private_key)
+
+    print(username, password)
+    password = hashlib.sha256(password).hexdigest()
+
+    db = mysql.connector.connect(
+                    host="localhost",
+                    user="root",
+                    password="12345",
+                    database="water_taps"
+                )
+    
+    mycursor = db.cursor()
+
+    mycursor.execute("SELECT * FROM userdata WHERE username = %s AND %s", (username, password))
+
+    if mycursor.fetchall():
+         return True
+    else:
+         return False  
+    
+
+
+     
 def handle_client(conn, addr):
-            print(f"Request from {addr}")
-            command = conn.recv(1024).decode(FORMAT)
-            print(f"command type: {command}")
+            
 
-            if command == 'get':
+            
+    print(f"Request from {addr}")
+    conn.send(public_key.save_pkcs1("PEM"))
 
-                db = mysql.connector.connect(
-                    host="localhost",
-                    user="root",
-                    password="12345",
-                    database="water_taps"
-                )
+    permission = check_permission(conn) 
+    print(permission)
+    if permission: # if the data is valid continue
+         conn.send("allowed".encode(FORMAT))
+         print("OK")
 
-                mycursor = db.cursor()
+    else: # if not valid send an error msg
+         conn.send("denied".encode(FORMAT))
+         print("Not OK")
+         return # exit the function
 
-                mycursor.execute("SELECT * FROM Taps")
+    command = rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)
+    print(f"command type: {command}")
 
-                columns = [column[0] for column in mycursor.description]
-                data = [dict(zip(columns, row)) for row in mycursor.fetchall()]
+    if command == '/get':
 
-                json_data = json.dumps(data, indent=4)
+        client_public = rsa.PublicKey.load_pkcs1(conn.recv(1024))
 
-                conn.send(json_data.encode('utf-8'))
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="12345",
+            database="water_taps"
+        )
+
+        mycursor = db.cursor()
+
+        mycursor.execute("SELECT * FROM Taps")
+
+        columns = [column[0] for column in mycursor.description]
+        data = [dict(zip(columns, row)) for row in mycursor.fetchall()]
+
+        json_data = json.dumps(data, indent=4)
+        print(json_data.encode(FORMAT))
+
+        key = os.urandom(16)
+        nonce = os.urandom(16)
+        print(key)
+        cipher = AES.new(key, AES.MODE_EAX, nonce)
+                
+
+        conn.send(rsa.encrypt(key, client_public))
+        time.sleep(0.1)
+        conn.send(rsa.encrypt(nonce, client_public))
+        time.sleep(0.1)
+
+        encrypted = cipher.encrypt(json_data.encode(FORMAT))
+                
+
+        conn.sendall(encrypted)
+        conn.send(b"<END>")
+        print("END")
+
+        conn.close()
+
 
                 
-            elif command == 'send':
+    elif command == '/send':
 
-                name = conn.recv(1024).decode(FORMAT)
-                coord_X = float(conn.recv(1024).decode(FORMAT))
-                coord_Y = float(conn.recv(1024).decode(FORMAT))
-                score = float(conn.recv(1024).decode(FORMAT))
 
-                print("added:" + name + str(coord_X) + str(coord_Y) + str(score))
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="12345",
+            database="water_taps"
+        )
 
-                db = mysql.connector.connect(
-                    host="localhost",
-                    user="root",
-                    password="12345",
-                    database="water_taps"
-                )
+        mycursor = db.cursor()
 
-                mycursor = db.cursor()
-                mycursor.execute(f"INSERT INTO Taps (Name, X_coord, Y_coord, Score) VALUES ('{name}', {coord_X}, {coord_Y}, {score})")
-                db.commit()
-                print("DONE!")
+        sql = "INSERT INTO Taps (Name, X_coord, Y_coord, Score) VALUES (%s, %s, %s, %s)"
+        val = (rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT),
+                float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)),
+                float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)),
+                float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)))
+
+        mycursor.execute(sql, val)
+                
+        db.commit()
+        print("DONE!")
                 
 
-                mycursor.execute("SELECT * FROM Taps")
+        mycursor.execute("SELECT * FROM Taps")
 
-                columns = [column[0] for column in mycursor.description]
-                data = [dict(zip(columns, row)) for row in mycursor.fetchall()]
+        columns = [column[0] for column in mycursor.description]
+        data = [dict(zip(columns, row)) for row in mycursor.fetchall()]
 
-                json_data = json.dumps(data, indent=4)
-                print(json_data)
+        json_data = json.dumps(data, indent=4)
+        print(json_data)
+            
+
+    elif command == "/report":
+
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="12345",
+            database="water_taps"
+        )
+
+        mycursor = db.cursor()
+
+        ps = ["בעיה בממשק המשתמש", "מיקום ברזייה שגוי", "שם לא נאות לברזייה", "אחר"] # the possible subjects for the report
+
+        subject = rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)
+
+        if subject == ps[0] or subject == ps[1] or subject == ps[2] or subject == ps[3]: # checking if the subject that was recived is one of the above
+                pass # if true dont do anything
+        else:
+                subject = ps[3] # if it doesn't match put it under the subject "other"
+
+        details = rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT) # reciving details
+        current_time = str(datetime.datetime.now())[:-7] # getting the current time of the report, removing the last seven digits that show the miliseconds
+
+        sql = "INSERT INTO reports (subject, details, Date) VALUES (%s, %s, %s)"
+        val = (subject, details, current_time)
+
+        mycursor.execute(sql, val)
+                
+        db.commit()
+        print("DONE!")
+
 
 
 def start():

@@ -1,0 +1,44 @@
+[
+    {
+        "idTaps": 4,
+        "Name": "server try",
+        "X_coord": 57.0,
+        "Y_coord": 23.0,
+        "Score": 4.0
+    },
+    {
+        "idTaps": 5,
+        "Name": "Hello World!",
+        "X_coord": 54.0,
+        "Y_coord": 34.0,
+        "Score": 3.4
+    },
+    {
+        "idTaps": 6,
+        "Name": "\u05e0\u05d9\u05e1\u05d9\u05d5\u05df",
+        "X_coord": 32.0681,
+        "Y_coord": 34.7787,
+        "Score": 4.7
+    },
+    {
+        "idTaps": 7,
+        "Name": "\u05e1\u05d1\u05d9\u05d3\u05d5\u05e8 \u05de\u05e8\u05db\u05d6 \u05de\u05e1\u05d5\u05e3 2000",
+        "X_coord": 32.085,
+        "Y_coord": 34.7958,
+        "Score": 3.3
+    },
+    {
+        "idTaps": 8,
+        "Name": "SQL INJECTION'",
+        "X_coord": 32.1452,
+        "Y_coord": 34.8359,
+        "Score": 0.0
+    },
+    {
+        "idTaps": 9,
+        "Name": "\u05e4\u05d0\u05e8\u05e7 \u05db\u05e4\u05e8 \u05e1\u05d1\u05d0",
+        "X_coord": 32.1816,
+        "Y_coord": 34.9249,
+        "Score": 4.3
+    }
+]

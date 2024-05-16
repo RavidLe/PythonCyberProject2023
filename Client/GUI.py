@@ -5,6 +5,15 @@ import tkintermapview
 from tkinter import font
 from PIL import Image, ImageTk
 import mysql.connector
+import rsa
+import time
+import json
+
+HOST = '10.0.0.25'
+PORT = 9090
+FORMAT = 'utf-8'
+
+public_key, private_key = rsa.newkeys(1024)
 
 class App(Tk):
     def __init__(self):
@@ -158,21 +167,37 @@ class MapFrame(SideFrame):
         watermap.set_tile_server("https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga")
         
         taps = []
-
-        db = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="12345",
-            database="water_taps"
-        )
-
-        mycursor = db.cursor()
-
-        mycursor.execute("SELECT * FROM taps_table")
-
         
+        socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket.connect((HOST, PORT))
 
-        for watertap in mycursor:
+        server_public = socket.recv(1024).decode(FORMAT)
+
+        socket.send(rsa.encrypt("get".encode(FORMAT), server_public))
+        time.sleep(0.1)
+        socket.send(rsa.encrypt(public_key.encode(FORMAT), server_public))
+
+        file = open("data.json", "wb")
+
+        file_bytes = b""
+
+        done = FALSE
+
+        while not done:
+            data = rsa.decrypt(socket.recv(1024), private_key).decode(FORMAT)
+            if file_bytes[-5:] == b"<END>":
+                done = True
+            else:
+                file_bytes += data
+
+        file.write(file_bytes)
+
+        socket.close()
+        
+        data = json.load(file)
+
+
+        for watertap in data:
            taps.append(WaterMapMarker(watermap, watertap[1], watertap[2], watertap[3], watertap[4]))
         
         def updatezoom(event):
@@ -200,12 +225,11 @@ class MapFrame(SideFrame):
                     tap.get_marker().set_text("")
         
                 
-
         watermap.canvas.bind('<Motion>', motion)
 
-
-
         watermap.grid(row=1,column=0)
+
+        file.close()
 
         
         

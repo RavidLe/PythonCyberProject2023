@@ -1,201 +1,60 @@
-from tkinter import *
-from tkinter import ttk
-import tkintermapview
-import tkinter.font as TkFont
-from PIL import Image, ImageTk
-import mysql.connector
-import os
-
-class App(Tk):
-    def __init__(self):
-        super().__init__()
-        self["bg"] = "#d9d9d9"
-        self.geometry('1120x630')
-        self.minsize(1120,630)
-        self.iconbitmap(r'C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Client\3105807.ico')
-        self.title("TapMap")
+from classes import *
 
 
 
+app = App() # creating a main window
 
+user = User() # user class
 
-class WaterMapMarker():
-
-    def __init__(self, watermap, name, x, y, score):
-
-        self.name = name
-        self.score = score
-        self.x = x
-        self.y = y
-
-        self.image = os.path.join(r'C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\client\3105806.png')
-        self.icon = ImageTk.PhotoImage(Image.open(self.image).resize((12, 12)))
-        self.marker = watermap.set_marker(x, y, icon=self.icon)
-        self.marker_polygon = watermap.set_polygon([(x+0.006, y),(x,y+0.006),(x-0.006,y),(x,y-0.006)], border_width = 0, outline_color = None, fill_color = None)
-        
-
-    def get_marker_polygon(self):
-        return self.marker_polygon
-    
-    def get_name(self):
-        return self.name
-    
-    def get_score(self):
-        return self.score
-    
-    def get_marker(self):
-        return self.marker
-    
-    def get_x(self):
-        return self.x
-    
-    def get_y(self):
-        return self.y
-    
-    def update_icon_size(self, zoom):
-        if zoom<8:
-            zoom = 8
-        newsize = int((zoom-7)**1.5)+10
-        self.icon = ImageTk.PhotoImage(Image.open(self.image).resize((newsize, newsize))) 
-        self.marker.change_icon(self.icon)
-
-
-class MarkerFrame(Frame):
-    def __init__(self, container, name):
-        super().__init__(container)
-
-        Label(self, text=name, bg="white", font = TkFont.Font(family="Rubik", size=30) ).pack(side="right")
-        self['bg'] = 'white'
-        
-
-    def getscore(self):
-        return self.score 
-
-
-class MapFrame(Frame):
-    def __init__(self, *args, **kwargs):
-        Frame.__init__(self, *args, **kwargs)
-
-        self['bg'] = 'red'
-        
-        watermap = tkintermapview.TkinterMapView(self, max_zoom=18)
-        watermap.set_address("32.0852937, 34.7816499")
-        watermap.set_zoom(10)
-        
-        watermap.set_tile_server("https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga")
-        
-        taps = []
-
-        db = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="12345",
-            database="water_taps"
-        )
-
-        mycursor = db.cursor()
-
-        mycursor.execute("SELECT * FROM taps_table")
-        
-        widgets = {}
-
-        i = 0
-
-        for watertap in mycursor:
-           taps.append(WaterMapMarker(watermap, watertap[1], watertap[2], watertap[3], watertap[4]))
-           widgets[taps[i]] = MarkerFrame(watermap, watertap[1])
-
-           i += 1
-        
-        print(widgets)
-
-        def updatezoom(event):
-            for tap in taps:
-                tap.update_icon_size(watermap.zoom)
-
-        watermap.canvas.bind_all('<MouseWheel>', updatezoom)
-        watermap.canvas.bind_all("<Button-1>",updatezoom)
-        
-        def show(event):
-
-            
-
-            for tap in taps:
-
-                
-                
-                c = tap.get_marker_polygon().canvas_polygon_positions
-
-                if event.y > c[1] and event.x < c[2] and event.y < c[5] and event.x > c[6]:
-                    widgets[tap].grid(row=1,column=0, sticky="nsew")
-                    watermap.set_position(tap.get_x(), tap.get_y())
-
-                
-        
-                
-
-        watermap.canvas.bind_all('<Button-1>', show)
-
-
-
-        watermap.grid(row=0, column=0, sticky="nsew")
-
-        Grid.rowconfigure(self, 0, weight=1)
-        Grid.columnconfigure(self, 0, weight=1)
-
-
-class Menu_Button(Button):
-     def __init__(self, icon, *args, **kwargs):
-        Button.__init__(self, *args, **kwargs)
-        
-        self['bg'] = 'white'
-        self['fg'] = 'black'
-        self['image'] = icon
-        self['height'] = 60
-        #self['width'] = 120
-        self['compound'] = RIGHT
-        self['font'] = TkFont.Font(family="Rubik", size=24)
-        self['relief'] = "flat"
-        self['anchor'] = E
-
-
-
-        
-app = App()
-
-MapFrame(app).grid(row=0,column=0, sticky="nsew")
-
-menu_frame = Frame(app, bg='white')
-
-
-
-
-menu_btns = []
-menu_btns_text = ["מפה   ", "הוספה   ", "דיווח   ", "מידע   "]
+# set all the buttons in the menu
+menu_btns = [] 
+menu_btns_text = ["מפה   ", "הוספה   ", "דיווח   ", "מידע   "] # title of buttons
 icons = [
-    ImageTk.PhotoImage(Image.open(r"C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Client\Icons\map.png").resize((30, 30))),
-    ImageTk.PhotoImage(Image.open(r"C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Client\Icons\more.png").resize((30, 30))),
-    ImageTk.PhotoImage(Image.open(r"C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Client\Icons\report.png").resize((30, 30))),
-    ImageTk.PhotoImage(Image.open(r"C:\Users\ravid\OneDrive\מסמכים\GitHub\PythonCyberProject2023\Client\Icons\info.png").resize((30, 30)))
-]
+    ImageTk.PhotoImage(Image.open("Client\Icons\map.png").resize((30, 30))),
+    ImageTk.PhotoImage(Image.open("Client\Icons\more.png").resize((30, 30))),
+    ImageTk.PhotoImage(Image.open("Client\Icons\ireport.png").resize((30, 30))),
+    ImageTk.PhotoImage(Image.open("Client\Icons\info.png").resize((30, 30)))
+] # icons of buttons
 
+map_frame = TapLocationsMapFrame(app) # a map with the location of taps
+add_frame = AddFrame(user, app) # for adding taps
+report_frame = ReportFrame(user, app) # for reporting problems
 
+menu_frame = Frame(app, bg='white') # creating the menu frame 
 
+login_frame = loginFrame([map_frame, add_frame, report_frame, menu_frame], user, app) # to login
 
+# placing login frame
+login_frame.grid(column=0, row=0, sticky="nwes")
+
+# command of the buttons
+def commandbtn(frame):
+    frame.tkraise() # raisng the chosen page
+    
+    
+
+# setting the title of the buttons
 for i in range(len(menu_btns_text)):
-  print(i)
-  menu_btns.append(Menu_Button(icons[i], menu_frame, text=menu_btns_text[i]))
+    menu_btns.append(Menu_Button(icons[i], menu_frame, text=menu_btns_text[i]))
+
+# setting the commands of the buttons
+menu_btns[0].configure(command=lambda: commandbtn(map_frame))
+menu_btns[1].configure(command=lambda: commandbtn(add_frame))
+menu_btns[2].configure(command=lambda: commandbtn(report_frame))
+menu_btns[3].configure(command=lambda: commandbtn(map_frame))
+
+# placing the buttons
+for i in range(len(menu_btns_text)):
   menu_btns[i].grid(row=i, column=0, padx=10, pady=5, sticky="ewsn")
 
 
+Grid.columnconfigure(menu_frame, 0, weight=1) # adjusting the grid
 
-Grid.columnconfigure(menu_frame, 0, weight=1)
-
-menu_frame.grid(row=0, column=1,padx=1, sticky="nsew")
-
-Grid.rowconfigure(app, 0, weight=1)
+# adjusting the grid
+Grid.rowconfigure(app, 0, weight=1) 
 Grid.columnconfigure(app, 0, weight=6)
 Grid.columnconfigure(app, 1, weight=1)
 
+login_frame.tkraise()
 
-app.mainloop()
+app.mainloop() # mainloop
