@@ -172,12 +172,12 @@ class loginFrame(Frame):
         login_button = Button(self, text="התחברות", bg ="light cyan", font=TkFont.Font(family="Rubik", size=36), command=login)
 
         # placing everything
-        title.pack(anchor="n")
+        title.pack(anchor="n", pady=50)
         username_label.pack(anchor="n")
         username_entry.pack(anchor="n")
         password_label.pack(anchor="n")
         password_entry.pack(anchor="n")
-        login_button.pack(pady=20, anchor="n")
+        login_button.pack(pady=40, anchor="n")
 
 
 
@@ -188,7 +188,7 @@ class loginFrame(Frame):
 class App(Tk):
     def __init__(self):
         super().__init__()
-        self["bg"] = "#d9d9d9" # background color of the window
+        self["bg"] = "white" # background color of the window
         self.geometry('1120x630') # size of the window
         self.minsize(1120,630)
         self.iconbitmap('Client\icon5807.ico') # icon of the window
@@ -239,9 +239,26 @@ class WaterMapMarker():
 class MarkerFrame(Frame):
     def __init__(self, container, name, score):
         super().__init__(container)
+        
+
+        # choosing the color according to the score
+        if score < 1:
+            backgroundcolor = "saddle brown"
+        elif score < 2:
+            backgroundcolor = "red"
+        elif score < 3:
+            backgroundcolor = "orange"
+        elif score < 4:
+            backgroundcolor = "yellow green"
+        elif score < 4.7:
+            backgroundcolor = "dark green"
+        else:
+            backgroundcolor = "blue2"
+
 
         Label(self, text="שם הברזייה"+ ": " + name, bg="white", font = TkFont.Font(family="Rubik", size=30) ).pack(ipadx= 20,side="right") #wirting the name of the tap
-        Label(self, text="דירוג" + ": " +str(score), bg="white", font = TkFont.Font(family="Rubik", size=30) ).pack(ipadx= 20, side="right") #writing the score of the tap
+        Label(self, text=":דירוג ", bg="white", font = TkFont.Font(family="Rubik", size=30) ).pack(ipadx= 20, side="right") #writing the score of the tap
+        Label(self, text=str(score), bg=backgroundcolor, fg='white', font = TkFont.Font(family="Rubik", size=30) ).pack(ipadx= 20, side="right") #writing the score of the tap
         self['bg'] = 'white' #background color is white
         print(name, score)
         

@@ -8,12 +8,12 @@ user = User() # user class
 
 # set all the buttons in the menu
 menu_btns = [] 
-menu_btns_text = ["מפה   ", "הוספה   ", "דיווח   ", "מידע   "] # title of buttons
+menu_btns_text = ["מפה   ", "הוספה   ", "דיווח   "] # title of buttons
 icons = [
     ImageTk.PhotoImage(Image.open("Client\Icons\map.png").resize((30, 30))),
     ImageTk.PhotoImage(Image.open("Client\Icons\more.png").resize((30, 30))),
     ImageTk.PhotoImage(Image.open("Client\Icons\ireport.png").resize((30, 30))),
-    ImageTk.PhotoImage(Image.open("Client\Icons\info.png").resize((30, 30)))
+    
 ] # icons of buttons
 
 map_frame = TapLocationsMapFrame(app) # a map with the location of taps
@@ -41,7 +41,7 @@ for i in range(len(menu_btns_text)):
 menu_btns[0].configure(command=lambda: commandbtn(map_frame))
 menu_btns[1].configure(command=lambda: commandbtn(add_frame))
 menu_btns[2].configure(command=lambda: commandbtn(report_frame))
-menu_btns[3].configure(command=lambda: commandbtn(map_frame))
+
 
 # placing the buttons
 for i in range(len(menu_btns_text)):

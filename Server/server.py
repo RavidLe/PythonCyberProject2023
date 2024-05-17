@@ -122,16 +122,21 @@ def handle_client(conn, addr):
 
         mycursor = db.cursor()
 
-        sql = "INSERT INTO Taps (Name, X_coord, Y_coord, Score) VALUES (%s, %s, %s, %s)"
-        val = (rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT),
-                float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)),
-                float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)),
-                float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)))
+        # the data type might be worng and cause failure
+        try:
+            sql = "INSERT INTO Taps (Name, X_coord, Y_coord, Score) VALUES (%s, %s, %s, %s)"
+            val = (rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT),
+                    float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)),
+                    float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)),
+                    float(rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)))
 
-        mycursor.execute(sql, val)
+            mycursor.execute(sql, val)
                 
-        db.commit()
-        print("DONE!")
+            db.commit()
+            print("DONE!")
+        except:
+             conn.send("ERORR!".encode(FORMAT))
+             print("ERORR IN THE DATA TYPE!")
                 
 
         mycursor.execute("SELECT * FROM Taps")
