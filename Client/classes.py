@@ -1,245 +1,155 @@
+
+
+
+# Import necessary modules
 from tkinter import *
 import tkintermapview
 import tkinter.font as TkFont
 from PIL import Image, ImageTk
-import os
 import rsa
-import time
 import json
-import socket
-from Crypto.Cipher import AES
-from Crypto.PublicKey import RSA
+import server_Connection
 
+marker_icon = Image.open('client\icon5806.png')
+print(marker_icon)
 
+# Server connection details
+HOST = '10.0.0.25'
+PORT = 9090
+FORMAT = 'utf-8'
 
-HOST = '10.0.0.25' # IP of server
-PORT = 9090 # PORT of server
-FORMAT = 'utf-8' # The Format of encoding and decoding which needs to be idetical to the server's format
+# Establish server connection
+connection = server_Connection.ServerConnection(HOST, PORT, FORMAT)
 
-public_key, private_key = rsa.newkeys(1024) # creating a private and public key for asymetrical encryption
-
-# fuction the resposible to the communication with the server
-def call_server(request, user, info = []): 
-    conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # creating a tcp connection with the server
-    conn.connect((HOST, PORT)) 
-
-
-    server_public = rsa.PublicKey.load_pkcs1(conn.recv(1024)) # reciving the public key of the server for asymetrical encryption
-
-    #sending to server the password and username
-    conn.send(user.get_username())
-    time.sleep(0.1)
-
-    conn.send(user.get_password())
-    time.sleep(0.1)
-
-    print("recived key from server")
-
-    if request == "send":
-        conn.send(rsa.encrypt("/send".encode(FORMAT), server_public)) # command
-        
-        for data in info:
-            conn.send(rsa.encrypt(str(data).encode(FORMAT), server_public)) # sending each prameter in a diffrent packet
-            time.sleep(0.1) #delay so the packets won't mix
-    
-    elif request == "report":
-        conn.send(rsa.encrypt("/report".encode(FORMAT), server_public)) # command
-
-        for data in info:
-            conn.send(rsa.encrypt(str(data).encode(FORMAT), server_public)) # sending each prameter in a diffrent packet
-            time.sleep(0.1) #delay so the packets won't mix
-
-    conn.close() 
-
-class User():
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
-    
-    def __init__(self):
-        self.username = ""
-        self.password = ""
-    
-    def get_username(self):
-        return self.username
-    def get_password(self):
-        return self.password
-    
-    def set_username(self, username):
-        self.username = username
-    def set_password(self, password):
-        self.password = password
-
-
-class loginFrame(Frame):
-    def __init__(self, frames, user, *args, **kwargs):
+# Define the login frame class
+class loginPage(Frame):
+    def __init__(self, frames, connection, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
+        self['bg'] = 'white'
 
-        self['bg'] = 'white' # background color
-
+        # Function to handle login
         def login():
-            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # creating a tcp connection with the server
-            conn.connect((HOST, PORT)) 
+            username = self.username_entry.get()
+            password = self.password_entry.get()
 
-            server_public = rsa.PublicKey.load_pkcs1(conn.recv(1024)) # reciving the public key of the server for asymetrical encryption
+             # set the username and password to the connection
+            connection.set_username(username)
+            connection.set_password(password)
 
-            print("recived key from server")
+            # trying to get data and reciving answer from the server
+            login_status = connection.load_info()
 
-            username = rsa.encrypt(username_entry.get().encode(FORMAT), server_public)
-            password = rsa.encrypt(password_entry.get().encode(FORMAT), server_public)
-
-            conn.send(username)
-            time.sleep(0.1)
-            conn.send(password)
-
-            ans = conn.recv(1024).decode(FORMAT) 
-            if ans == "allowed":
-                conn.send(rsa.encrypt("/get".encode(FORMAT), server_public)) # command to the server
-                time.sleep(0.1) # setting a delay so that the two messages above and below won't mix with each other due to the sendig being to quick
-
-                conn.send(public_key.save_pkcs1("PEM")) # sending the server the public key 
-
-                # all the messages from know on will be encrypted
-
-                # sending a large file (database) therefore there is a need in symetrical encryption
-
-                key = rsa.decrypt(conn.recv(1024), private_key) # reciving the common key for the symetrical encryption
-                nonce = rsa.decrypt(conn.recv(1024), private_key) # reciving the nonce
-                cipher = AES.new(key, AES.MODE_EAX, nonce) # creating the cipher which allow to decrypted the file
-
-                print("recived rsa key")
-
-                file_bytes = b"" # the bytes of the file
-                done = FALSE  # indication if the transfer is done
-
-                while not done: 
-
-                    data = conn.recv(1024) # recving data in packets (1024)
-    
-                    if file_bytes[-5:] == b"<END>": # <END> is an sign that the file ends
-                        print("DONE")
-                        done = True # if <END> shows that transfer is done
-        
-                    else:
-                        file_bytes += data # if not done continue to recive packets
-
-                file = open("data", "wb") # create a file for the data
-    
-                file.write(cipher.decrypt(file_bytes[:-5])) # write to bytes decrypted without the last five bytes (<END>)
-                file.close()
-
-                self.destroy()
-
-                i = 0
-                for frame in frames[:-1]:
-                    frame.grid(row=0, column=0,padx=1, sticky="nsew")
-                    i += 1
-                frames[i].grid(row=0, column=1,padx=1, sticky="nsew")
-                
+            # if the answer is positive
+            if login_status == "allowed":
+                self.destroy() # destroy the login page
+                # set the frames for the UI
+                for i, frame in enumerate(frames[:-1]):
+                    frame.grid(row=0, column=0, padx=1, sticky="nsew")
+                frames[i + 1].grid(row=0, column=1, padx=1, sticky="nsew")
                 frames[0].tkraise()
-
-                user.set_password(password)
-                user.set_username(username)
-
-
-            elif ans == "denied":
-                error_msg = Label(self, text="שגיאה בפרטים", bg = 'white', fg='red', font = TkFont.Font(family="Rubik", size=24)) # error message
-                error_msg.place(relx = 1, rely = 0.5, anchor='e')
-                error_msg.after(2000 , lambda: error_msg.destroy()) # removing it after two seconds
-
-                username_entry.delete(0, END)
-                password_entry.delete(0, END) 
-                
+                frames[0].set_map() # setting the map with the data that was just sent from the server
+            
+            # if the answer is negative or other answer send a error msg
             else:
-                error_msg = Label(self, text="בעיית תקשרות", bg = 'white', fg='red', font = TkFont.Font(family="Rubik", size=24)) # error message
-                error_msg.place(relx = 1, rely = 0.5, anchor='e')
-                error_msg.after(2000 , lambda: error_msg.destroy()) # removing it after two seconds    
+                error_msg = Label(
+                    self,
+                    text="שגיאה בפרטים" if login_status == "denied" else "בעיית תקשרות",
+                    bg='white', fg='red', font=TkFont.Font(family="Rubik", size=24)
+                )
+                error_msg.place(relx=1, rely=0.5, anchor='e')
+                error_msg.after(2000, lambda: error_msg.destroy()) # destroying the msg after 2 sec
+                # clear the entry boxes
+                self.username_entry.delete(0, END)
+                self.password_entry.delete(0, END)
 
-                username_entry.delete(0, END)
-                password_entry.delete(0, END)           
-           
+        # UI components for login frame
+        self.title = Label(self, text="!TAPMAPברוכים הבאים ל", bg='white', font=TkFont.Font(family="Rubik", size=36))
+        self.username_label = FormLabel(self, text=":שם משתמש")
+        self.password_label = FormLabel(self, text=":סיסמא")
 
-        # titles and label from the login
-        title = Label(self, text="!TAPMAPברוכים הבאים ל", bg = 'white', font=TkFont.Font(family="Rubik", size=36))
-        username_label = FormLabel(self, text=":שם משתמש")
-        password_label = FormLabel(self, text=":סיסמא")
+        self.username_entry = EntryInfo(self)
+        self.password_entry = EntryInfo(self, show="*")
 
-        # enter user name and password
-        username_entry = EntryInfo(self)
-        password_entry = EntryInfo(self, show="*")
+        self.login_button = Button(self, text="התחברות", bg="light cyan", font=TkFont.Font(family="Rubik", size=36), command=login)
 
-        # login button
-        login_button = Button(self, text="התחברות", bg ="light cyan", font=TkFont.Font(family="Rubik", size=36), command=login)
+        # Place UI components
+        self.title.pack(anchor="n", pady=50)
+        self.username_label.pack(anchor="n")
+        self.username_entry.pack(anchor="n")
+        self.password_label.pack(anchor="n")
+        self.password_entry.pack(anchor="n")
+        self.login_button.pack(pady=40, anchor="n")
 
-        # placing everything
-        title.pack(anchor="n", pady=50)
-        username_label.pack(anchor="n")
-        username_entry.pack(anchor="n")
-        password_label.pack(anchor="n")
-        password_entry.pack(anchor="n")
-        login_button.pack(pady=40, anchor="n")
-
-
-
-
-
-
-# settings of the window
+# Define the main application class
 class App(Tk):
     def __init__(self):
         super().__init__()
-        self["bg"] = "white" # background color of the window
-        self.geometry('1120x630') # size of the window
-        self.minsize(1120,630)
-        self.iconbitmap('Client\icon5807.ico') # icon of the window
-        self.title("TapMap") # title of the window
+        self["bg"] = "white"
+        self.geometry('1120x630')
+        self.minsize(1120, 630)
+        self.iconbitmap('Client\iconapp.ico')
+        iconphoto = PhotoImage(file='Client\iconphoto.png')
+        self.iconphoto(True, iconphoto)
+        self.title("TapMap")
 
+# Define the class for water map markers
+class WaterMapMarker:
+    def __init__(self, watermap, watertap):
+        self.name = watertap['Name']
+        self.score = watertap['Score']
+        self.x = watertap['X_coord']
+        self.y = watertap['Y_coord']
+        self.watermap = watermap
 
-class WaterMapMarker():
+        self.icon = ImageTk.PhotoImage(marker_icon.resize((12, 12))) # loading the icon of the marker
+        self.marker = watermap.set_marker(self.x, self.y, icon=self.icon) # create a marker
+        # create the polygon around the marker
+        self.marker_polygon = watermap.set_polygon(
+            [(self.x + 0.005, self.y), (self.x, self.y + 0.005), (self.x - 0.005, self.y), (self.x, self.y - 0.005)],
+            border_width=0, outline_color=None, fill_color=None
+        )
 
-    def __init__(self, watermap, name, x, y, score):
-
-        self.name = name # name that will be shown on the label
-        self.score = score # score that will be shown on the label
-        self.x = x # location of the mark
-        self.y = y # ""
-
-        self.icon = ImageTk.PhotoImage(Image.open('client\icon5806.png').resize((12, 12))) # resize it to a optimal size
-        self.marker = watermap.set_marker(x, y, icon=self.icon) # creating a marker
-        self.marker_polygon = watermap.set_polygon([(x+0.006, y),(x,y+0.006),(x-0.006,y),(x,y-0.006)],
-                                                    border_width = 0, outline_color = None, fill_color = None) # creating a polygon for the marker
-        
-
+    # Get methods for marker properties
     def get_marker_polygon(self):
         return self.marker_polygon
-    
+
     def get_name(self):
         return self.name
-    
+
     def get_score(self):
         return self.score
-    
+
     def get_marker(self):
         return self.marker
-    
+
     def get_x(self):
         return self.x
-    
+
     def get_y(self):
         return self.y
-    
-    def update_icon_size(self, zoom):
-        if zoom<8:
-            zoom = 8
-        newsize = int((zoom-7)**1.5)+10
-        self.icon = ImageTk.PhotoImage(Image.open('client\icon5806.png').resize((newsize, newsize))) 
+
+    # Update marker size based on zoom level
+    def update_size(self, zoom):
+        zoom = max(zoom, 8) # minimun is 8
+        newsize = int((zoom - 7) ** 1.5) + 10 # the new size of the icons
+        # updating the new size
+        self.icon = ImageTk.PhotoImage(marker_icon.resize((newsize, newsize))) 
         self.marker.change_icon(self.icon)
 
-# shown when a tap is clicked
+        # update the size of the polygon according to zoom
+        update_size = pow(0.005, float(zoom) / 10) # update size = 0.005^zoom/10 
+        # set the new ploygon
+        self.marker_polygon = self.watermap.set_polygon(
+            [(self.x + update_size, self.y), (self.x, self.y + update_size), (self.x - update_size, self.y), (self.x, self.y - update_size)],
+            border_width=0, outline_color=None, fill_color=None
+        )
+
+# Define the frame for displaying marker information
 class MarkerFrame(Frame):
     def __init__(self, container, name, score):
         super().__init__(container)
-        
+        self.score = score
+        self.name = name
 
         # choosing the color according to the score
         if score < 1:
@@ -255,292 +165,271 @@ class MarkerFrame(Frame):
         else:
             backgroundcolor = "blue2"
 
+        if len(name) > 25:
+            textsize = 20
+        else:
+            textsize = 25
 
-        Label(self, text="שם הברזייה"+ ": " + name, bg="white", font = TkFont.Font(family="Rubik", size=30) ).pack(ipadx= 20,side="right") #wirting the name of the tap
-        Label(self, text=":דירוג ", bg="white", font = TkFont.Font(family="Rubik", size=30) ).pack(ipadx= 20, side="right") #writing the score of the tap
-        Label(self, text=str(score), bg=backgroundcolor, fg='white', font = TkFont.Font(family="Rubik", size=30) ).pack(ipadx= 20, side="right") #writing the score of the tap
-        self['bg'] = 'white' #background color is white
-        print(name, score)
-        
+        Label(self, text=f"שם הברזייה: {self.name}", bg="white", font=TkFont.Font(family="Rubik", size=textsize)).pack(ipadx=20, side="right")
+        Label(self, text=":דירוג", bg="white", font=TkFont.Font(family="Rubik", size=textsize)).pack(ipadx=20, side="right")
+        Label(self, text=str(self.score), bg=backgroundcolor, fg='white', font=TkFont.Font(family="Rubik", size=30)).pack(ipadx=20, side="right")
+        self['bg'] = 'white'
 
-    def getscore(self):
-        return self.score 
+# Define the map class
+class Map(tkintermapview.TkinterMapView):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.max_zoom = 18
+        self.set_address("32.0852937, 34.7816499")
+        self.set_zoom(10)
+        self.set_tile_server("https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga")
 
+# Define the class for choosing a location on the map
+class ChooseLocationMap(Frame):
+    def __init__(self, entry_box, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.map = Map(self)
 
-class MapFrame(Frame):
+        # Handle left click events on the map
+        def left_click_event(coordinates_tuple):
+            self.map.delete_all_marker()
+            def Send():
+                entry_box.location_entry.insert(0, coordinates_tuple)
+                self.destroy()
+
+            self.x_pos, self.y_pos = coordinates_tuple
+            self.map.set_marker(self.x_pos, self.y_pos, text="")
+            if self.map.zoom < 15:
+                self.map.set_zoom(15)
+            self.map.set_position(self.x_pos, self.y_pos)
+
+            self.ChooseBtn = Button(self, text="בחר", bg="light green",
+                               font=TkFont.Font(family="Rubik", size=24), relief="ridge", borderwidth=1, command=Send)
+            self.ChooseBtn.place(relx=0.5, rely=1, anchor="s")
+
+        self.map.add_left_click_map_command(left_click_event)
+        self.map.grid(row=0, column=0, sticky="nsew")
+
+        Grid.rowconfigure(self, 0, weight=1)
+        Grid.columnconfigure(self, 0, weight=1)
+
+# Define the frame for displaying the tap locations on the map
+class TapLocationsMapPage(Frame):
     def __init__(self, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
 
-        map = tkintermapview.TkinterMapView(self, max_zoom=18) # creating an interactive map widget
-        map.set_address("32.0852937, 34.7816499") # when the map is opened it will show Tel Aviv
-        map.set_zoom(10) # setting the zoom when opening a map
-        
-        map.set_tile_server("https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga") # the map will be google map style
+    # Set the map with tap locations
+    def set_map(self):
+        self.watermap = Map(self)
+        self.taps = []
+        self.widgets = {}
 
-        self.map = map #class varible
-        
-class ChooseLocationMap(MapFrame):
-    def __init__(self, l, *args, **kwargs):
-        MapFrame.__init__(self, *args, **kwargs)
-        
-        map = self.map
-        
-        # when clicking left click
-        def left_click_event(coordinates_tuple): 
+        with open('data') as f:
+            self.data = json.load(f)
 
-            map.delete_all_marker() # remove all previous markers on the mark
-            
-            #when choosing an marker
-            def Send(): 
-                l.location_entry.insert(0, coordinates_tuple) # insert the the entry box of the location in the add page the chosen coords (X,Y)
-                self.destroy() # returns to the add page
-                
-                
-            x_pos = coordinates_tuple[0] # position where clicked
-            y_pos = coordinates_tuple[1] 
+        for watertap in self.data:
+            tap = WaterMapMarker(self.watermap, watertap)
+            self.taps.append(tap)
+            self.widgets[tap] = MarkerFrame(self.watermap, watertap['Name'], watertap["Score"])
 
-            marker = map.set_marker(x_pos, y_pos, text = "")  # creating a marker where clicked
-
-            if map.zoom < 15: 
-                map.set_zoom(15) # setting zoom to 15 if zoom is not already bigger
-
-            map.set_position(x_pos, y_pos) # foucsing on the marker
-
-            ChooseBtn = Button(self, text="בחר", bg="light green",
-                               font=TkFont.Font(family="Rubik", size=24), relief="ridge", borderwidth=1, command= lambda: Send()) #creating the choose button if clicked calling f send
-            
-            ChooseBtn.place(relx=0.5, rely=1, anchor= "s") # placing button
-    
-
-
-        map.add_left_click_map_command(left_click_event)  # if left click is triggered           
-
-
-        map.grid(row=0, column=0, sticky="nsew") # placing map
-
-        Grid.rowconfigure(self, 0, weight=1) # adjusting grid so it will be spread on the frame
-        Grid.columnconfigure(self, 0, weight=1) # ""
-
-
-     
-class TapLocationsMapFrame(MapFrame):
-    def __init__(self, *args, **kwargs):
-        MapFrame.__init__(self, *args, **kwargs)
-
-        watermap = self.map 
-
-        taps = [] # creating a list of all the taps on the maps
-
-        
-        
-        f = open('data') # open the file in which the data was written
- 
-        
-        data = json.load(f) # returns JSON object as a dictionary
-        
-        widgets = {} # creating a list that will hold all widgets
-
-        i = 0 # an index for the loop
-
-        for watertap in data:
-           
-           taps.append(WaterMapMarker(watermap, watertap['Name'], watertap['X_coord'], watertap['Y_coord'], watertap['Score'])) # each tap containes name, x, y and score
-           widgets[taps[i]] = MarkerFrame(watermap, watertap['Name'], watertap["Score"]) # creating a widget for each tap that will hold the name of the tap and the score 
-
-           i += 1 # increase the index
-
-        # when the zoom changes
+        # Update zoom level
         def updatezoom(event):
-            for tap in taps:
-                tap.update_icon_size(watermap.zoom) # update the size of the icons according the amout of zoom 
+            for tap in self.taps:
+                tap.update_size(self.watermap.zoom)
 
-        watermap.canvas.bind_all('<MouseWheel>', updatezoom) # when Mousewheel is triggered the zoom changes 
-        watermap.canvas.bind_all("<Button-1>",updatezoom) # might be that the zoom will be changed with the buttons of the zoom
-        
-        # every time a left click is happening checking if the click was on an icon
+        self.watermap.canvas.bind_all('<MouseWheel>', updatezoom)
+        self.watermap.canvas.bind_all("<Button-1>", updatezoom)
+
+        # Show marker information
         def show(event):
+            for tap in self.taps:
+                c = tap.get_marker_polygon().canvas_polygon_positions
+                if c[1] < event.y < c[5] and c[6] < event.x < c[2]:
+                    self.widgets[tap].grid(row=1, column=0, sticky="nsew")
+                    self.widgets[tap].tkraise()
+                    self.watermap.set_position(tap.get_x(), tap.get_y())
 
-            for tap in taps:
-          
-                c = tap.get_marker_polygon().canvas_polygon_positions # area around the marker the if clicked the details of the tap opens
+        self.watermap.canvas.bind_all("<Button-1>", show)
+        self.watermap.grid(row=0, column=0, sticky='nsew')
+        Grid.rowconfigure(self, 0, weight=1)
+        Grid.columnconfigure(self, 0, weight=1)
 
-                if event.y > c[1] and event.x < c[2] and event.y < c[5] and event.x > c[6]: # checking if the click was in the area of the tap
-                    widgets[tap].grid(row=1,column=0, sticky="nsew") # placing a frame that shows the details of the tap
-                    widgets[tap].tkraise()
-                    watermap.set_position(tap.get_x(), tap.get_y()) # foucs on the tap
-
-                
-        
-
-        watermap.canvas.bind_all('<Button-1>', show) # when left click is triggered
-
-
-
-        watermap.grid(row=0, column=0, sticky="nsew") # placing the map
-
-        Grid.rowconfigure(self, 0, weight=1) # adjusting the map so it is spreaded on the frame
-        Grid.columnconfigure(self, 0, weight=1) # ""
-
-class AddFrame(Frame):
-    def __init__(self,user, app,  *args, **kwargs):
+# Define the frame for adding a new tap location
+class AddPage(Frame):
+    def __init__(self, connection, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
-        self['bg'] = 'white' #background color
+        self['bg'] = 'white'
 
-        # if the enter button is pressed
+        # Function to enter data
         def enter_data():
-            
-
             try:
-                name = name_entry.get() # retriving the name from the entry box
+                name = self.name_entry.get()
+                x, y = self.location_entry.get().split()
+                score = float(self.scale.get())
+                connection.send_info([name, x, y, score])
 
-                location = self.location_entry.get().split() # retriving the location from the entry box and spliting it to two numbers
-                location[0] = float(location[0]) # converting to float might fail so in try and except
-                location[1] = float(location[1]) # ""
-
-                rating = scale.get() # retriving the rating from the entry box
-
-                call_server('send', user,[name, location[0], location[1], rating]) # sending to the server the data the was entered
+                success = Label(self, text="הברזייה נוספה בהצלחה", fg="green", font=TkFont.Font(family="Rubik", size=20), bg="white")
+                success.pack()
+                success.after(2000, success.destroy)
             except:
-                error_msg = Label(self, text="שגיאה בפרטים", bg = 'white', fg='red', font = TkFont.Font(family="Rubik", size=24)) # error message
-                error_msg.place(relx = 1, rely = 0.5, anchor='e')
-                error_msg.after(2000 , lambda: error_msg.destroy()) # removing it after two seconds
+                fail = Label(self, text="חסרים פרטים", fg="red", font=TkFont.Font(family="Rubik", size=20), bg="white")
+                fail.pack()
+                fail.after(2000, fail.destroy)
+
+        # UI components for adding a new tap
+        self.title = Label(self, text="הוספת ברזייה", bg='white', font=TkFont.Font(family="Rubik", size=36))
+        self.name_label = FormLabel(self, text=":שם הברזייה")
+        self.location_label = FormLabel(self, text=":מיקום הברזייה")
+        self.score_label = FormLabel(self, text=":דירוג הברזייה")
+
+        self.name_entry = EntryInfo(self)
+        self.location_entry = EntryInfo(self)
+        def set_color(score):
+            score = float(score)
+            # choosing the color according to the score
+            if score < 1:
+                backgroundcolor = "saddle brown"
+            elif score < 2:
+                backgroundcolor = "red"
+            elif score < 3:
+                backgroundcolor = "orange"
+            elif score < 4:
+                backgroundcolor = "yellow green"
+            elif score < 4.7:
+                backgroundcolor = "dark green"
+            else:
+                backgroundcolor = "blue2"
             
-            # cleaning the data
-            name_entry.delete(0, END) 
-            self.location_entry.delete(0, END)
-            scale.set(0)
-        
-        # map is open for chosing the location for the new tap
-        def open_map():
-            map = ChooseLocationMap(self, app)
-            map.grid(row=0, column=0,padx=1, sticky="nsew")
-            
-            
+            if score >= 4:
+                foregroundcolor = 'white'
+            else:
+                foregroundcolor = 'black'
 
-        location_frame = Frame(self, bg='white') # frame for the entry and the button of the location
+            self.scale.config(bg = backgroundcolor,troughcolor = backgroundcolor, fg=foregroundcolor)
 
-        name_entry = EntryInfo(self) # for enter name
-        self.location_entry = EntryInfo(location_frame) # for enter location
-        
-        Label(self, font=TkFont.Font(family="Rubik", size=36), text=":הוספת ברזייה", bg='white').pack(ipady=40) # main title of the page
-
-        # titles
-        name_label = FormLabel(self, text=":שם הברזייה")  
-        location_label = FormLabel(self, text=":מיקום")
-        rating_label = FormLabel(self, text=":דירוג")
-
-
-        location_button = Button(location_frame, font=TkFont.Font(family="Rubik", size=10), text="בחר על המפה", bg='light cyan', command= lambda: open_map()) # a button that call f open_map
-
-        scale = Scale(self, font=TkFont.Font(family="Rubik", size=18), bd=0, bg="white",
+        self.scale = Scale(self, font=TkFont.Font(family="Rubik", size=18), bd=0, bg="white",
                        borderwidth=0,digits=2, from_ = 0, to = 5,
-                         length = 250,resolution = 0.1, orient = HORIZONTAL, troughcolor = "light cyan") #creating a scale to chose score
-        
-        
-        #placing everything
-        name_label.pack(anchor='n')
-        name_entry.pack(anchor='n')
-        location_label.pack(anchor='n')
-        self.location_entry.pack(anchor='n')
-        location_button.pack(side="right",anchor='n')
-        location_frame.pack(anchor='n')
-        rating_label.pack(anchor='n')
-        scale.pack(anchor='n')
+                         length = 250,resolution = 0.1, orient = HORIZONTAL, troughcolor = "light cyan", command=set_color) #creating a scale to chose score
 
-        Button(self, font=TkFont.Font(family="Rubik", size=24), text="הוספה", bg='light cyan',borderwidth=2,relief="ridge", command = enter_data).pack( anchor='n', pady=40) # button that sends the data
+        self.submit_button = Button(self, text="הוספה", bg="light cyan", font=TkFont.Font(family="Rubik", size=36), command=enter_data)
+        self.location_button = Button(self, text="בחר מיקום", bg="light cyan", font=TkFont.Font(family="Rubik", size=10),
+                                 command=lambda: ChooseLocationMap(self).grid(row=0, column=0, sticky='nsew', padx=1))
+       
+        
 
-class ReportFrame(Frame):
-     def __init__(self, user, *args, **kwargs):
+        # Place UI components
+        self.title.pack(anchor = 'n', pady = 20)
+        self.name_label.pack(anchor = 'n', pady = (10,0))
+        self.name_entry.pack(anchor = 'n', pady = (0,10))
+        self.location_label.pack(anchor = 'n', pady = (10,0))
+        self.location_entry.pack(anchor = 'n')
+        self.location_button.pack(anchor = 'n', pady = (0,10))
+        self.score_label.pack(anchor = 'n', pady = (10,0))
+        self.scale.pack(anchor = 'n', pady = (0,10))
+        self.submit_button.pack(anchor = 'n', pady = 10)
+
+
+        # Function to submit report
+class ReportPage(Frame):
+    def __init__(self, connection, *args, **kwargs):
         Frame.__init__(self, *args, **kwargs)
 
-        self['bg'] = 'white' # background color
+        self['bg'] = 'white'  # Set the background color to white
 
-
+        # Function to send the report
         def send(subject):
-
             try:
-
-                report_subject = subject[len(subject) - 1] # no idea the only way i found to get the selection in the drop menu
-                report_text = report_details.get(1.0, END) # getting the text from the report page
-               
-
-                call_server("report", user, [report_subject, report_text])
+                # Get the selected subject from the drop-down menu
+                report_subject = subject  # This line retrieves the last character from the selected subject
+                # Get the report text from the text box
+                report_text = self.report_details.get(1.0, END)
+                # Send the report using the connection object
+                connection.send_report([report_subject, report_text])
+                
+                # Display a confirmation message
+                confirm_msg = Label(self, text="!דיווח נשלח בהצלחה", bg='white', fg='green', font=TkFont.Font(family="Rubik", size=24))
+                confirm_msg.pack()
+                confirm_msg.after(2000, lambda: confirm_msg.destroy())  # Remove the message after 2 seconds
 
             except:
+                # Display an error message if no subject is selected
+                error_msg = Label(self, text="לא נבחר נושא", bg='white', fg='red', font=TkFont.Font(family="Rubik", size=24))
+                error_msg.pack()
+                error_msg.after(500, lambda: error_msg.destroy())  # Remove the message after 2 seconds
 
-                error_msg = Label(self, text="לא נבחר נושא", bg = 'white', fg='red', font = TkFont.Font(family="Rubik", size=24)) # error message
-                error_msg.place(relx = 1, rely = 0.5, anchor='e')
-                error_msg.after(2000 , lambda: error_msg.destroy())  # removing it after two seconds
-
-            #clearing the page
+            # Clear the input fields
             options.set("בחר")
-            report_details.delete('1.0', END)
+            self.report_details.delete('1.0', END)
 
+        # Main title of the page
+        Label(self, font=TkFont.Font(family="Rubik", size=36), text="דיווח", bg='white').pack(ipady=10)
 
-        Label(self, font=TkFont.Font(family="Rubik", size=36), text="דיווח", bg='white').pack(ipady=10) # main title of the page
-        subject_label = FormLabel(self, text = ":נושא") # subject label
+        # Subject label
+        self.subject_label = FormLabel(self, text=":נושא")
 
-        x = [] # the only in could transfer the varible from the function to global
-        def callback(selection):
-            x.append(selection)
+        # Variable to hold the selected option from the drop-down menu
+        options = StringVar(self)
 
-        options = StringVar()
-        
-        drop = OptionMenu(self, options, "בחר" ,"בעיה בממשק המשתמש", "מיקום ברזייה שגוי", "שם לא נאות לברזייה", "אחר",command=callback) # create a drop menu to choose from
-        options.set("בחר")
+        # List of options for the drop-down menu
+        options_list = ["בחר", "בעיה בממשק המשתמש", "מיקום ברזייה שגוי", "שם לא נאות לברזייה", "אחר"]
 
-        text_label = FormLabel(self, text=":פירוט הבעיה") # text label
+        # Create a drop-down menu for selecting the report subject
+        self.drop = OptionMenu(self, options, *options_list)
+        options.set("בחר")  # Set the default value of the drop-down menu
 
-        report_details = Text(self, height= 15, width=60, bg="ghost white") # text box where the report is written
+        # Text label for the report details
+        self.text_label = FormLabel(self, text=":פירוט הבעיה")
 
-        send_button = Button(self, font=TkFont.Font(family="Rubik", size=24), text="שליחה", bg="light cyan", borderwidth=2, relief="ridge", command=lambda: send(x)) # send button
+        # Text box for writing the report details
+        self.report_details = Text(self, height=15, width=60, bg="ghost white")
 
+        # Send button to submit the report
+        self.send_button = Button(self, font=TkFont.Font(family="Rubik", size=24), text="שליחה", bg="light cyan", borderwidth=2, relief="ridge", command=lambda: send(options.get()))
 
+        # Function to limit the number of characters in the text box
         def char_count(event):
             CHAR_LIMIT = 200
             # This function allows typing up to the character limit and allows deletion
-            count = len(report_details.get('1.0', 'end-1c'))
+            count = len(self.report_details.get('1.0', 'end-1c'))
             if count >= CHAR_LIMIT and event.keysym not in {'BackSpace', 'Delete'}:
-                return 'break'  # dispose of the event, prevent typing
-            
+                return 'break'  # Prevent further typing
 
-        report_details.bind('<KeyPress>', char_count)
-        report_details.bind('<KeyRelease>', char_count)
+        # Bind the character count function to key press and release events
+        self.report_details.bind('<KeyPress>', char_count)
+        self.report_details.bind('<KeyRelease>', char_count)
 
+        # Place all the widgets in the frame
+        self.subject_label.pack(anchor='n', pady=5)
+        self.drop.pack(anchor='n', pady=5)
+        self.text_label.pack(anchor='n', pady=5)
+        self.report_details.pack(anchor='n', pady=5)
+        self.send_button.pack(anchor='n', pady=5)
 
-        # placing everything
-        subject_label.pack(anchor='n', pady=5)
-        drop.pack(anchor='n', pady=5)
-        text_label.pack(anchor='n', pady=5)
-        report_details.pack(anchor='n', pady=5)
-        send_button.pack(anchor='n', pady=5)
-
-
-
+# Define a custom label class for form labels
 class FormLabel(Label):
     def __init__(self, *args, **kwargs):
         Label.__init__(self, *args, **kwargs)
-        self['font'] = TkFont.Font(family="Rubik", size=24)   # setting font
-        self['bg'] = "white" # set background 
+        self.config(bg="white", font=TkFont.Font(family="Rubik", size=24), anchor="e")
 
+# Define a custom entry class for form inputs
 class EntryInfo(Entry):
     def __init__(self, *args, **kwargs):
         Entry.__init__(self, *args, **kwargs)
+        self.config(justify='right', relief="ridge", borderwidth=1, font=TkFont.Font(family="Rubik", size=20), bg="light cyan")
 
-        self['font'] = TkFont.Font(family="Rubik", size=18)  # font
-        self['bg'] = "light cyan"     #background color
-        self['borderwidth'] = 1 #borderwidht
-
-class Menu_Button(Button):
-     def __init__(self, icon, *args, **kwargs):
+# Define the menu bar class
+class MenuButton(Button):
+    def __init__(self, icon, *args, **kwargs):
         Button.__init__(self, *args, **kwargs)
         
-        self['bg'] = 'white' # background color
-        self['fg'] = 'black' # text color
-        self['image'] = icon # icon of the button
-        self['height'] = 60  # size
-        #self['width'] = 120
-        self['compound'] = RIGHT # compound
-        self['font'] = TkFont.Font(family="Rubik", size=18)  #font
-        self['relief'] = "flat" # type of the button's border
-        self['anchor'] = E # starts from east
+        self['bg'] = 'white'  # Set the background color to white
+        self['fg'] = 'black'  # Set the text color to black
+        self['image'] = icon  # Set the icon image for the button
+        self['height'] = 60  # Set the height of the button
+        # self['width'] = 120  # Set the width of the button (commented out)
+        self['compound'] = RIGHT  # Position the icon to the right of the text
+        self['font'] = TkFont.Font(family="Rubik", size=18)  # Set the font family and size
+        self['relief'] = "flat"  # Set the button border to flat
+        self['anchor'] = E  # Anchor the content to the east (right side)
+
+

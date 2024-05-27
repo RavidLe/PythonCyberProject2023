@@ -3,11 +3,11 @@ import socket
 import mysql.connector
 import json
 import rsa
-import os 
-from Crypto.Cipher import AES
 import time
 import datetime
 import hashlib
+import os 
+import symetricalEnc
 
 
 HOST = '10.0.0.25'
@@ -36,7 +36,7 @@ def check_permission(conn):
     
     mycursor = db.cursor()
 
-    mycursor.execute("SELECT * FROM userdata WHERE username = %s AND %s", (username, password))
+    mycursor.execute("SELECT * FROM userdata WHERE username = %s AND password = %s", (username, password))
 
     if mycursor.fetchall():
          return True
@@ -62,6 +62,7 @@ def handle_client(conn, addr):
     else: # if not valid send an error msg
          conn.send("denied".encode(FORMAT))
          print("Not OK")
+         conn.close()
          return # exit the function
 
     command = rsa.decrypt(conn.recv(1024), private_key).decode(FORMAT)
@@ -89,20 +90,15 @@ def handle_client(conn, addr):
         print(json_data.encode(FORMAT))
 
         key = os.urandom(16)
-        nonce = os.urandom(16)
-        print(key)
-        cipher = AES.new(key, AES.MODE_EAX, nonce)
-                
 
+        
         conn.send(rsa.encrypt(key, client_public))
         time.sleep(0.1)
-        conn.send(rsa.encrypt(nonce, client_public))
-        time.sleep(0.1)
-
-        encrypted = cipher.encrypt(json_data.encode(FORMAT))
+    
+        encrypted = symetricalEnc.encrypt(json_data.encode(FORMAT), key)
                 
 
-        conn.sendall(encrypted)
+        conn.sendall(encrypted.encode(FORMAT))
         conn.send(b"<END>")
         print("END")
 

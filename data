@@ -40,5 +40,110 @@
         "X_coord": 32.1816,
         "Y_coord": 34.9249,
         "Score": 4.3
+    },
+    {
+        "idTaps": 10,
+        "Name": "\u05d4\u05e4\u05d0\u05e8\u05e7 \u05d4\u05d0\u05e7\u05d5\u05dc\u05d5\u05d2\u05d9",
+        "X_coord": 32.1335,
+        "Y_coord": 34.892,
+        "Score": 4.5
+    },
+    {
+        "idTaps": 11,
+        "Name": "\u05e4\u05d0\u05e8\u05e7 \u05db\u05e4\u05e8 \u05e1\u05d1\u05d0",
+        "X_coord": 32.1826,
+        "Y_coord": 34.9221,
+        "Score": 3.2
+    },
+    {
+        "idTaps": 12,
+        "Name": "\u05d1\u05d9\u05ea \u05d4\u05e1\u05e4\u05e8 \u05d4\u05d3\u05de\u05d5\u05e7\u05e8\u05d8\u05d9 \u05e2\"\u05e9 \u05d9\u05e2\u05e7\u05d5\u05d1 \u05d7\u05d6\u05df",
+        "X_coord": 32.1912,
+        "Y_coord": 34.9344,
+        "Score": 5.0
+    },
+    {
+        "idTaps": 13,
+        "Name": "\u05d9\u05e2\u05e8 \u05e7\u05e4\u05dc\u05df",
+        "X_coord": 32.1931,
+        "Y_coord": 34.9354,
+        "Score": 1.8
+    },
+    {
+        "idTaps": 14,
+        "Name": "\u05d1\u05df \u05d9\u05d4\u05d5\u05d3\u05d4 \u05d4\u05d7\u05d9\"\u05e9",
+        "X_coord": 32.1848,
+        "Y_coord": 34.914,
+        "Score": 3.5
+    },
+    {
+        "idTaps": 15,
+        "Name": "\u05e9\u05d1\u05d8 \u05e8\u05db\"\u05e1",
+        "X_coord": 32.1845,
+        "Y_coord": 34.9133,
+        "Score": 2.5
+    },
+    {
+        "idTaps": 16,
+        "Name": "\u05ea\u05d9\u05db\u05d5\u05df \u05e8\u05d1\u05d9\u05df \u05d7\u05d5\u05e5",
+        "X_coord": 32.1844,
+        "Y_coord": 34.9125,
+        "Score": 4.1
+    },
+    {
+        "idTaps": 17,
+        "Name": "\u05de\u05e1\u05dc\u05d5\u05dc \u05d2\u05dc\u05d9\u05dc\u05d9",
+        "X_coord": 32.1855,
+        "Y_coord": 34.9082,
+        "Score": 4.8
+    },
+    {
+        "idTaps": 18,
+        "Name": "\u05e6\u05d5\u05de\u05ea \u05d8\u05e9\u05e8\u05e0\u05d9\u05d7\u05d5\u05d1\u05e1\u05e7\u05d9 \u05d1\u05df \u05d9\u05d4\u05d5\u05d3\u05d4",
+        "X_coord": 32.1867,
+        "Y_coord": 34.9042,
+        "Score": 3.5
+    },
+    {
+        "idTaps": 19,
+        "Name": "\u05e1\u05e4\u05d5\u05e8\u05d8\u05e7 1",
+        "X_coord": 32.1827,
+        "Y_coord": 34.9298,
+        "Score": 4.5
+    },
+    {
+        "idTaps": 20,
+        "Name": "\u05e1\u05e4\u05d5\u05e8\u05d8\u05e7 2",
+        "X_coord": 32.183,
+        "Y_coord": 34.9302,
+        "Score": 4.1
+    },
+    {
+        "idTaps": 21,
+        "Name": "\u05d2\u05df \u05d9\u05d4\u05d5\u05d3\u05d4",
+        "X_coord": 32.0819,
+        "Y_coord": 34.8083,
+        "Score": 3.8
+    },
+    {
+        "idTaps": 22,
+        "Name": "\u05d1\u05df \u05d9\u05d4\u05d5\u05d3\u05d4 \u05e1\u05e4\u05d5\u05e8\u05d8\u05e7",
+        "X_coord": 32.1832,
+        "Y_coord": 34.9285,
+        "Score": 3.5
+    },
+    {
+        "idTaps": 23,
+        "Name": "\u05de\u05d2\u05e8\u05e9 \u05d1\u05d9\u05ea \u05d4\u05e1\u05e4\u05e8 \u05d4\u05d3\u05de\u05d5\u05e7\u05e8\u05d8\u05d9",
+        "X_coord": 32.1909,
+        "Y_coord": 34.9343,
+        "Score": 2.2
+    },
+    {
+        "idTaps": 24,
+        "Name": "1",
+        "X_coord": 1.0,
+        "Y_coord": 1.0,
+        "Score": 1.0
     }
 ]
