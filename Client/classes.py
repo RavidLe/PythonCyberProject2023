@@ -10,7 +10,7 @@ import rsa
 import json
 import server_Connection
 
-marker_icon = Image.open('client\icon5806.png')
+marker_icon = Image.open('client\Icons\icon5806.png')
 print(marker_icon)
 
 # Server connection details
@@ -87,8 +87,8 @@ class App(Tk):
         self["bg"] = "white"
         self.geometry('1120x630')
         self.minsize(1120, 630)
-        self.iconbitmap('Client\iconapp.ico')
-        iconphoto = PhotoImage(file='Client\iconphoto.png')
+        self.iconbitmap('Client\Icons\iconapp.ico')
+        iconphoto = PhotoImage(file='Client\Icons\iconphoto.png')
         self.iconphoto(True, iconphoto)
         self.title("TapMap")
 
@@ -240,14 +240,17 @@ class TapLocationsMapPage(Frame):
         self.watermap.canvas.bind_all('<MouseWheel>', updatezoom)
         self.watermap.canvas.bind_all("<Button-1>", updatezoom)
 
-        # Show marker information
+        # when left clicked check if on tap
         def show(event):
+            # check for every tap on the map
             for tap in self.taps:
-                c = tap.get_marker_polygon().canvas_polygon_positions
+                c = tap.get_marker_polygon().canvas_polygon_positions # the position of the tap
+                # checking if the mouse was inside the polygon of the tap when clicked
                 if c[1] < event.y < c[5] and c[6] < event.x < c[2]:
+                    # if yes show the frame with the details about the taps
                     self.widgets[tap].grid(row=1, column=0, sticky="nsew")
                     self.widgets[tap].tkraise()
-                    self.watermap.set_position(tap.get_x(), tap.get_y())
+                    self.watermap.set_position(tap.get_x(), tap.get_y()) # center the map around the tap that was clicked
 
         self.watermap.canvas.bind_all("<Button-1>", show)
         self.watermap.grid(row=0, column=0, sticky='nsew')
@@ -271,6 +274,11 @@ class AddPage(Frame):
                 success = Label(self, text="הברזייה נוספה בהצלחה", fg="green", font=TkFont.Font(family="Rubik", size=20), bg="white")
                 success.pack()
                 success.after(2000, success.destroy)
+
+                self.name_entry.delete(0, END)
+                self.location_entry.delete(0, END)
+                self.scale.set(0)
+                
             except:
                 fail = Label(self, text="חסרים פרטים", fg="red", font=TkFont.Font(family="Rubik", size=20), bg="white")
                 fail.pack()
@@ -287,25 +295,34 @@ class AddPage(Frame):
         def set_color(score):
             score = float(score)
             # choosing the color according to the score
+            if score == 0:
+                self.scale.config(bg="white", troughcolor="light cyan")
+                return
             if score < 1:
-                backgroundcolor = "saddle brown"
+                backgroundcolor = "chocolate4"
+                throughcolor = "saddle brown"
             elif score < 2:
-                backgroundcolor = "red"
+                backgroundcolor = "firebrick2"
+                throughcolor = "firebrick4"
             elif score < 3:
                 backgroundcolor = "orange"
+                throughcolor = "orange2"
             elif score < 4:
-                backgroundcolor = "yellow green"
+                backgroundcolor = "chartreuse2"
+                throughcolor = "chartreuse4"
             elif score < 4.7:
-                backgroundcolor = "dark green"
+                backgroundcolor = "green2"
+                throughcolor = "green4"
             else:
                 backgroundcolor = "blue2"
+                throughcolor = "blue4"
             
             if score >= 4:
                 foregroundcolor = 'white'
             else:
                 foregroundcolor = 'black'
 
-            self.scale.config(bg = backgroundcolor,troughcolor = backgroundcolor, fg=foregroundcolor)
+            self.scale.config(bg = backgroundcolor,troughcolor = throughcolor, fg=foregroundcolor)
 
         self.scale = Scale(self, font=TkFont.Font(family="Rubik", size=18), bd=0, bg="white",
                        borderwidth=0,digits=2, from_ = 0, to = 5,

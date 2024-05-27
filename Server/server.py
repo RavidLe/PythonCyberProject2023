@@ -53,15 +53,15 @@ def handle_client(conn, addr):
     print(f"Request from {addr}")
     conn.send(public_key.save_pkcs1("PEM"))
 
-    permission = check_permission(conn) 
-    print(permission)
+    permission = check_permission(conn)
+     
     if permission: # if the data is valid continue
          conn.send("allowed".encode(FORMAT))
-         print("OK")
+         print(f"{addr} allowed!")
 
     else: # if not valid send an error msg
          conn.send("denied".encode(FORMAT))
-         print("Not OK")
+         print(f"{addr} denied!")
          conn.close()
          return # exit the function
 
@@ -87,7 +87,7 @@ def handle_client(conn, addr):
         data = [dict(zip(columns, row)) for row in mycursor.fetchall()]
 
         json_data = json.dumps(data, indent=4)
-        print(json_data.encode(FORMAT))
+        print("sending data...")
 
         key = os.urandom(16)
 
@@ -100,7 +100,7 @@ def handle_client(conn, addr):
 
         conn.sendall(encrypted.encode(FORMAT))
         conn.send(b"<END>")
-        print("END")
+        print("Done")
 
         conn.close()
 
@@ -129,10 +129,10 @@ def handle_client(conn, addr):
             mycursor.execute(sql, val)
                 
             db.commit()
-            print("DONE!")
+            print(f"Adding new data from {addr}")
         except:
              conn.send("ERORR!".encode(FORMAT))
-             print("ERORR IN THE DATA TYPE!")
+             print(f"ERORR IN THE DATA TYPE FROM {addr}!")
                 
 
         mycursor.execute("SELECT * FROM Taps")
@@ -173,7 +173,7 @@ def handle_client(conn, addr):
         mycursor.execute(sql, val)
                 
         db.commit()
-        print("DONE!")
+        print(f"recived report from {addr}")
 
 
 
