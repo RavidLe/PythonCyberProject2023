@@ -1,4 +1,14 @@
 from classes import *
+import server_Connection
+
+
+# Server connection details
+HOST = '10.0.0.25'
+PORT = 9090
+FORMAT = 'utf-8'
+
+# Establish server connection
+connection = server_Connection.ServerConnection(HOST, PORT, FORMAT)
 
 # Create the main application window
 app = App()

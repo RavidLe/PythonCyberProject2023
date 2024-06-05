@@ -6,20 +6,12 @@ from tkinter import *
 import tkintermapview
 import tkinter.font as TkFont
 from PIL import Image, ImageTk
-import rsa
 import json
-import server_Connection
+
 
 marker_icon = Image.open('client\Icons\icon5806.png')
-print(marker_icon)
 
-# Server connection details
-HOST = '10.0.0.25'
-PORT = 9090
-FORMAT = 'utf-8'
 
-# Establish server connection
-connection = server_Connection.ServerConnection(HOST, PORT, FORMAT)
 
 # Define the login frame class
 class loginPage(Frame):
@@ -29,12 +21,15 @@ class loginPage(Frame):
 
         # Function to handle login
         def login():
+            
+
             username = self.username_entry.get()
             password = self.password_entry.get()
 
              # set the username and password to the connection
             connection.set_username(username)
             connection.set_password(password)
+
 
             # trying to get data and reciving answer from the server
             login_status = connection.load_info()

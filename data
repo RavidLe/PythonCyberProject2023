@@ -148,23 +148,16 @@
     },
     {
         "idTaps": 25,
-        "Name": "\u05e4\u05d0\u05e8\u05e7 \u05db\u05e4\u05e8 \u05e1\u05d1\u05d0 \u05d2\u05df \u05e9\u05e2\u05e9\u05d5\u05e2\u05d9\u05dd",
-        "X_coord": 32.1823,
-        "Y_coord": 34.9248,
-        "Score": 4.5
+        "Name": "\u05d9\u05e2\u05e8 \u05e7\u05e4\u05dc\u05df 2",
+        "X_coord": 32.1931,
+        "Y_coord": 34.9362,
+        "Score": 2.5
     },
     {
         "idTaps": 26,
-        "Name": "\u05ea\u05d9\u05db\u05d5\u05df \u05d2\u05dc\u05d9\u05dc\u05d9 \u05de\u05d1\u05e0\u05d4",
-        "X_coord": 32.1847,
-        "Y_coord": 34.9083,
-        "Score": 3.5
-    },
-    {
-        "idTaps": 27,
-        "Name": "\u05de\u05d2\u05e8\u05e9 \u05d9\u05e8\u05de\u05d9\u05d4\u05d5",
-        "X_coord": 32.1861,
-        "Y_coord": 34.9368,
-        "Score": 2.7
+        "Name": "1",
+        "X_coord": 1.0,
+        "Y_coord": 1.0,
+        "Score": 1.3
     }
 ]

@@ -27,7 +27,12 @@ class ServerConnection:
     def load_info(self):
         # Creating a TCP connection with the server
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        conn.connect((self.host, self.port)) 
+
+        # trying to connect to server if fails send error message
+        try:
+            conn.connect((self.host, self.port))
+        except:
+            return "error" 
 
         # Receiving the server's public key for asymmetric encryption
         server_public = rsa.PublicKey.load_pkcs1(conn.recv(1024))

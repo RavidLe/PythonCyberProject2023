@@ -1,0 +1,12 @@
+{
+    
+        "ip": "0.0.0.0",
+        "port": 9090,
+        "format" : "utf-8",
+        "host" : "localhost",
+        "user" : "root",
+        "password" : "12345",
+        "database": "water_taps"
+    }
+    
+
